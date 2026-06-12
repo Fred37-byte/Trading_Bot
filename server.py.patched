@@ -1,0 +1,112 @@
+*** Begin Patch
+*** Update File: c:\Users\HP\Desktop\trading-bot-internship-2026\server.py
+@@
+-    # ── 2. Init client ────────────────────────────────────────────────────
+-    try:
+-        client = BinanceClient()
+-    except EnvironmentError as exc:
+-        logger.error("Credentials missing: %s", exc)
+-        return OrderResponse(success=False, error=str(exc))
+-
+-    # ── 3. Place order ───────────────────────────────────────────────────
+-    try:
+-        result = order_service.place_order(
+-            client=client,
+-            symbol=req.symbol,
+-            side=req.side,
+-            order_type=req.order_type,
+-            quantity=req.quantity,
+-            price=req.price,
+-            stop_price=req.stop_price,
+-        )
+-        return OrderResponse(success=True, order=result)
+-
+-    except BinanceAPIError as exc:
+-        logger.error("BinanceAPIError: %s", exc)
+-        return OrderResponse(
+-            success=False,
+-            error=str(exc.args[0]),
+-            error_code=exc.error_code,
+-        )
+-    except NetworkError as exc:
+-        logger.error("NetworkError: %s", exc)
+-        return OrderResponse(success=False, error=str(exc))
+-    except Exception as exc:
+-        logger.exception("Unexpected error: %s", exc)
+-        return OrderResponse(success=False, error=f"Unexpected error: {exc}")
++    # ── 2. Init client / Mock handling ─────────────────────────────────────
++    # If mock='1' or 'state' run simulated execution against MOCK_STATE
++    if mock in ("1", "state"):
++        import random
++
++        symbol = req.symbol.upper()
++        price = MOCK_STATE["prices"].get(symbol, 0.0)
++        qty = req.quantity
++        side = req.side.upper()
++
++        # MARKET only simulation for simplicity
++        if req.order_type != "MARKET":
++            return OrderResponse(success=False, error="Mock only supports MARKET orders in this mode.")
++
++        required = qty * price
++        if side == "BUY":
++            if MOCK_STATE["balances"].get("USDT", 0.0) < required:
++                return OrderResponse(success=False, error=f"Not enough USDT in mock balance. required={required:.2f}")
++            MOCK_STATE["balances"]["USDT"] -= required
++            # buying pushes price up slightly
++            price = price * (1 + random.uniform(0.0005, 0.003))
++        else:
++            # SELL: add proceeds
++            MOCK_STATE["balances"]["USDT"] += required
++            # selling pushes price down slightly
++            price = price * (1 - random.uniform(0.0005, 0.003))
++
++        MOCK_STATE["prices"][symbol] = price
++        MOCK_STATE["next_order_id"] += 1
++        order = {
++            "orderId": MOCK_STATE["next_order_id"],
++            "symbol": symbol,
++            "status": "FILLED",
++            "side": side,
++            "type": "MARKET",
++            "origQty": str(qty),
++            "executedQty": str(qty),
++            "avgPrice": f"{price:.8f}",
++            "price": str(price),
++        }
++        logger.info("Mock order executed: %s", order)
++        return OrderResponse(success=True, order=order)
++
++    try:
++        client = BinanceClient()
++    except EnvironmentError as exc:
++        logger.error("Credentials missing: %s", exc)
++        return OrderResponse(success=False, error=str(exc))
++
++    # ── 3. Place order ───────────────────────────────────────────────────
++    try:
++        result = order_service.place_order(
++            client=client,
++            symbol=req.symbol,
++            side=req.side,
++            order_type=req.order_type,
++            quantity=req.quantity,
++            price=req.price,
++            stop_price=req.stop_price,
++        )
++        return OrderResponse(success=True, order=result)
++
++    except BinanceAPIError as exc:
++        logger.error("BinanceAPIError: %s", exc)
++        return OrderResponse(
++            success=False,
++            error=str(exc.args[0]),
++            error_code=exc.error_code,
++        )
++    except NetworkError as exc:
++        logger.error("NetworkError: %s", exc)
++        return OrderResponse(success=False, error=str(exc))
++    except Exception as exc:
++        logger.exception("Unexpected error: %s", exc)
++        return OrderResponse(success=False, error=f"Unexpected error: {exc}")
+*** End Patch

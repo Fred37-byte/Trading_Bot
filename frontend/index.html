@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Binance Futures Bot — Trading Dashboard</title>
+  <meta name="description"
+    content="A premium trading dashboard for placing MARKET, LIMIT, and STOP_MARKET orders on Binance Futures Testnet." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ── Reset & Tokens ─────────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-base: #080c14;
+      --bg-surface: #0d1420;
+      --bg-card: #111a2b;
+      --bg-input: #0a1020;
+      --bg-hover: #162035;
+
+      --border: rgba(255, 255, 255, 0.07);
+      --border-focus: rgba(99, 179, 237, 0.5);
+
+      --green: #00d68f;
+      --green-dim: rgba(0, 214, 143, 0.12);
+      --green-glow: rgba(0, 214, 143, 0.25);
+      --red: #ff4d6a;
+      --red-dim: rgba(255, 77, 106, 0.12);
+      --red-glow: rgba(255, 77, 106, 0.25);
+      --amber: #f59e0b;
+      --amber-dim: rgba(245, 158, 11, 0.12);
+      --blue: #63b3ed;
+      --blue-dim: rgba(99, 179, 237, 0.12);
+      --purple: #a78bfa;
+
+      --text-primary: #e8edf5;
+      --text-secondary: #7a8ba0;
+      --text-muted: #4a5568;
+
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+
+      --shadow-card: 0 4px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+      --shadow-glow-green: 0 0 20px rgba(0, 214, 143, 0.15);
+      --shadow-glow-red: 0 0 20px rgba(255, 77, 106, 0.15);
+
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html {
+      font-size: 14px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background grid ─────────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(99, 179, 237, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99, 179, 237, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8, 12, 20, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #00d68f 0%, #63b3ed 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .logo-sub {
+      color: var(--text-secondary);
+      font-weight: 400;
+      font-size: 0.8rem;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    #balance-pill {
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(0,214,143,0.06), rgba(99,179,237,0.03));
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+      transition: var(--transition);
+    }
+
+    #status-badge.ok .status-dot {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    #status-badge.miss .status-dot {
+      background: var(--amber);
+    }
+
+    #status-badge.err .status-dot {
+      background: var(--red);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .testnet-pill {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────────────── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 1.25rem;
+    }
+
+    /* ── Card ────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 1.1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.2px;
+    }
+
+    .card-icon {
+      font-size: 1rem;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    /* ── Order Form ──────────────────────────────────────────────────────── */
+    #order-form-card {
+      grid-row: 1 / 3;
+    }
+
+    #dashboard-card {
+      grid-column: 2 / 3;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .dashboard-tile {
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .dashboard-tile.chart-tile {
+      grid-column: 1 / -1;
+      min-height: 150px;
+      padding: 1.25rem;
+    }
+
+    .sparkline-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .sparkline-empty {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .tile-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+    }
+
+    .tile-value {
+      font-size: 1.45rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .tile-caption {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .tile-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #63b3ed;
+      background: rgba(99, 179, 237, 0.12);
+      border: 1px solid rgba(99, 179, 237, 0.18);
+      width: fit-content;
+    }
+
+    .form-group {
+      margin-bottom: 1.1rem;
+    }
+
+    .form-group:last-of-type {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      padding: 10px 13px;
+      outline: none;
+      transition: var(--transition);
+      -webkit-appearance: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.1);
+    }
+
+    input::placeholder {
+      color: var(--text-muted);
+    }
+
+    select option {
+      background: var(--bg-card);
+    }
+
+    /* Side toggle */
+    .side-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .side-btn {
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .side-btn.buy.active {
+      background: var(--green-dim);
+      color: var(--green);
+      border-color: rgba(0, 214, 143, 0.4);
+      box-shadow: var(--shadow-glow-green);
+    }
+
+    .side-btn.sell.active {
+      background: var(--red-dim);
+      color: var(--red);
+      border-color: rgba(255, 77, 106, 0.4);
+      box-shadow: var(--shadow-glow-red);
+    }
+
+    .side-btn:hover:not(.active) {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    /* Type tabs */
+    .type-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .type-tab {
+      flex: 1;
+      padding: 8px 4px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .type-tab.active {
+      background: var(--blue-dim);
+      color: var(--blue);
+      border-color: rgba(99, 179, 237, 0.4);
+    }
+
+    .type-tab:hover:not(.active) {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    /* Conditional fields */
+    .conditional-field {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .conditional-field.visible {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Submit button */
+    #submit-btn {
+      width: 100%;
+      padding: 13px;
+      margin-top: 1.5rem;
+      border-radius: var(--radius-md);
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, #00d68f 0%, #00b4d8 100%);
+      color: #000;
+      box-shadow: 0 4px 20px rgba(0, 214, 143, 0.3);
+    }
+
+    #submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(0, 214, 143, 0.45);
+    }
+
+    #submit-btn:active {
+      transform: translateY(0);
+    }
+
+    #submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #submit-btn.sell {
+      background: linear-gradient(135deg, #ff4d6a 0%, #ff7043 100%);
+      box-shadow: 0 4px 20px rgba(255, 77, 106, 0.3);
+    }
+
+    #submit-btn.sell:hover {
+      box-shadow: 0 6px 28px rgba(255, 77, 106, 0.45);
+    }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── Response Panel ──────────────────────────────────────────────────── */
+    #response-card {
+      transition: var(--transition);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+      text-align: center;
+      gap: 1rem;
+    }
+
+    .empty-icon {
+      font-size: 2.5rem;
+      opacity: 0.4;
+    }
+
+    .empty-state p {
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    /* Result grid */
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .result-cell {
+      background: var(--bg-surface);
+      padding: 14px 16px;
+    }
+
+    .result-cell.wide {
+      grid-column: 1 / -1;
+    }
+
+    .result-label {
+      font-size: 0.67rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .result-value {
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-primary);
+    }
+
+    .result-value.green {
+      color: var(--green);
+    }
+
+    .result-value.red {
+      color: var(--red);
+    }
+
+    .result-value.blue {
+      color: var(--blue);
+    }
+
+    /* Status banner */
+    .status-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .status-banner.success {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(0, 214, 143, 0.3);
+    }
+
+    .status-banner.error {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(255, 77, 106, 0.3);
+    }
+
+    /* Error detail */
+    .error-detail {
+      margin-top: 10px;
+      padding: 12px 14px;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--red);
+      word-break: break-word;
+      line-height: 1.6;
+    }
+
+    /* ── Order History ─────────────────────────────────────────────────── */
+    #history-card {
+      grid-column: 2;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .history-item:hover {
+      background: var(--bg-hover);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .history-badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+
+    .history-badge.BUY {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .history-badge.SELL {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .history-badge.ok {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .history-badge.fail {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .history-info {
+      flex: 1;
+    }
+
+    .history-symbol {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .history-meta {
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .history-time {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Logs Panel ──────────────────────────────────────────────────────── */
+    #logs-card {
+      grid-column: 1 / -1;
+    }
+
+    .logs-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .logs-toolbar label {
+      margin: 0;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .logs-count {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      width: 70px;
+    }
+
+    .btn-sm {
+      padding: 5px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-sm:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .auto-refresh-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-switch {
+      width: 32px;
+      height: 18px;
+      border-radius: 9px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      position: relative;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      top: 2px;
+      left: 2px;
+      transition: var(--transition);
+    }
+
+    .toggle-switch.on {
+      background: var(--green-dim);
+      border-color: rgba(0, 214, 143, 0.4);
+    }
+
+    .toggle-switch.on::after {
+      background: var(--green);
+      transform: translateX(14px);
+    }
+
+    #log-output {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      height: 220px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      line-height: 1.8;
+    }
+
+    #log-output::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    #log-output::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #log-output::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .log-line {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-line.DEBUG {
+      color: var(--text-muted);
+    }
+
+    .log-line.INFO {
+      color: var(--blue);
+    }
+
+    .log-line.WARNING {
+      color: var(--amber);
+    }
+
+    .log-line.ERROR {
+      color: var(--red);
+    }
+
+    .log-line.EMPTY {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+      }
+
+      #order-form-card {
+        grid-row: auto;
+      }
+
+      #history-card {
+        grid-column: 1;
+      }
+
+      #logs-card {
+        grid-column: 1;
+      }
+    }
+
+    /* ── Tooltip ─────────────────────────────────────────────────────────── */
+    [data-tip] {
+      position: relative;
+      cursor: help;
+    }
+
+    [data-tip]::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e2d45;
+      color: var(--text-primary);
+      font-size: 0.72rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      border: 1px solid var(--border);
+      z-index: 50;
+    }
+
+    [data-tip]:hover::after {
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📈</div>
+      <div>
+        <div>Futures Bot</div>
+        <div class="logo-sub">Binance USDT-M Testnet</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="testnet-pill">TESTNET</div>
+      <div id="balance-pill">USDT: <strong id="balance-value">—</strong></div>
+      <div id="status-badge">
+        <div class="status-dot"></div>
+        <span id="status-text">Checking…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────────────────────────── -->
+  <main>
+
+    <!-- ── Order Form Card ──────────────────────────────────────────────────── -->
+    <div class="card" id="order-form-card">
+      <div class="card-header">
+        <span class="card-icon">🎯</span>
+        <span class="card-title">Place Order</span>
+      </div>
+      <div class="card-body">
+        <form id="order-form" autocomplete="off">
+
+          <!-- Symbol -->
+          <div class="form-group">
+            <label for="symbol">Symbol</label>
+            <input id="symbol" type="text" placeholder="BTCUSDT" value="BTCUSDT" required
+              style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" />
+          </div>
+
+          <!-- Side -->
+          <div class="form-group">
+            <label>Side</label>
+            <div class="side-toggle">
+              <div class="side-btn buy active" id="btn-buy" onclick="setSide('BUY')">▲ BUY</div>
+              <div class="side-btn sell" id="btn-sell" onclick="setSide('SELL')">▼ SELL</div>
+            </div>
+            <input type="hidden" id="side" value="BUY" />
+          </div>
+
+          <!-- Order Type -->
+          <div class="form-group">
+            <label>Order Type</label>
+            <div class="type-tabs">
+              <div class="type-tab active" id="tab-MARKET" onclick="setType('MARKET')">MARKET</div>
+              <div class="type-tab" id="tab-LIMIT" onclick="setType('LIMIT')">LIMIT</div>
+              <div class="type-tab" id="tab-STOP_MARKET" onclick="setType('STOP_MARKET')">STOP</div>
+            </div>
+            <input type="hidden" id="order-type" value="MARKET" />
+          </div>
+
+          <!-- Quantity -->
+          <div class="form-group">
+            <label for="quantity">Quantity</label>
+            <input id="quantity" type="number" step="any" min="0" placeholder="0.001" required />
+          </div>
+
+          <!-- Limit Price (LIMIT only) -->
+          <div class="form-group conditional-field" id="field-price">
+            <label for="price">Limit Price <span style="color:var(--text-muted);font-weight:400">(USDT)</span></label>
+            <input id="price" type="number" step="any" min="0" placeholder="e.g. 30000" />
+          </div>
+
+          <!-- Stop Price (STOP_MARKET only) -->
+          <div class="form-group conditional-field" id="field-stop-price">
+            <label for="stop-price">Stop Trigger Price <span
+                style="color:var(--text-muted);font-weight:400">(USDT)</span></label>
+            <input id="stop-price" type="number" step="any" min="0" placeholder="e.g. 29000" />
+          </div>
+
+          <!-- Separator -->
+          <div style="border-top: 1px solid var(--border); margin: 1.25rem 0;"></div>
+
+          <!-- Order summary -->
+          <div id="order-summary"
+            style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:1rem;line-height:1.8;display:none;">
+          </div>
+
+          <button type="submit" id="submit-btn">Place BUY Order</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Dashboard Card ───────────────────────────────────────────────────── -->
+    <div class="card" id="dashboard-card">
+      <div class="card-header">
+        <span class="card-icon">📊</span>
+        <span class="card-title">Live Dashboard</span>
+      </div>
+      <div class="card-body dashboard-grid">
+        <div class="dashboard-tile">
+          <div class="tile-label">Available balance</div>
+          <div class="tile-value" id="dashboard-balance-value">— USDT</div>
+          <div class="tile-caption">Updated from <code>/api/balance?mock=1</code></div>
+        </div>
+        <div class="dashboard-tile">
+          <div class="tile-label">Market price</div>
+          <div class="tile-value" id="dashboard-price-value">—</div>
+          <div class="tile-caption">Live quote from <code>/api/price?mock=1</code></div>
+        </div>
+        <div class="dashboard-tile">
+          <div class="tile-label">API health</div>
+          <div class="tile-value" id="dashboard-health-value">Checking…</div>
+          <div class="tile-caption">Connected to <code>/api/health</code></div>
+        </div>
+        <div class="dashboard-tile">
+          <div class="tile-label">Last order</div>
+          <div class="tile-value" id="dashboard-last-order-value">No orders yet</div>
+          <div class="tile-caption">Most recent trade from this session</div>
+        </div>
+        <div class="dashboard-tile chart-tile">
+          <div class="tile-label">Mock price trend</div>
+          <div class="tile-value" id="dashboard-trend-summary">Live mock market movement</div>
+          <div id="dashboard-trend-chart" class="sparkline"></div>
+          <div class="tile-caption">Trend from <code>/api/price?mock=1</code> over the last 24 ticks.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Response Card ────────────────────────────────────────────────────── -->
+    <div class="card" id="response-card">
+      <div class="card-header">
+        <span class="card-icon">📋</span>
+        <span class="card-title">Order Response</span>
+      </div>
+      <div class="card-body" id="response-body">
+        <div class="empty-state">
+          <div class="empty-icon">⏳</div>
+          <p>No order placed yet.<br />Configure the form on the left and hit <strong>Place Order</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── History Card ─────────────────────────────────────────────────────── -->
+    <div class="card" id="history-card">
+      <div class="card-header">
+        <span class="card-icon">🕒</span>
+        <span class="card-title">Order History</span>
+        <span id="history-count" style="margin-left:auto;font-size:0.72rem;color:var(--text-muted);"></span>
+      </div>
+      <div class="card-body" id="history-body">
+        <div class="empty-state" style="padding:2rem;">
+          <div class="empty-icon">📭</div>
+          <p>Orders you place this session will appear here.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Logs Card ────────────────────────────────────────────────────────── -->
+    <div class="card" id="logs-card">
+      <div class="card-header">
+        <span class="card-icon">📡</span>
+        <span class="card-title">Live Logs</span>
+      </div>
+      <div class="card-body">
+        <div class="logs-toolbar">
+          <label for="logs-count">Last</label>
+          <input class="logs-count" id="logs-count" type="number" value="40" min="5" max="500" />
+          <label for="logs-count">lines</label>
+          <button class="btn-sm" id="btn-refresh-logs" onclick="fetchLogs()">↺ Refresh</button>
+          <div class="auto-refresh-toggle" onclick="toggleAutoRefresh()" data-tip="Auto-refresh logs every 5s">
+            <div class="toggle-switch" id="auto-refresh-switch"></div>
+            <span id="auto-refresh-label">Auto</span>
+          </div>
+        </div>
+        <div id="log-output"><span class="log-line EMPTY">Loading logs…</span></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Scripts ────────────────────────────────────────────────────────────── -->
+  <script>
+    /* ── State ──────────────────────────────────────────────────────────────── */
+    const API = '';   // relative to current origin
+    let currentSide = 'BUY';
+    let currentType = 'MARKET';
+    let orderHistory = [];
+    let priceHistory = [];
+    const MAX_PRICE_HISTORY = 24;
+    let autoRefreshTimer = null;
+
+    /* ── Init ───────────────────────────────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+      refreshDashboard();
+      fetchLogs();
+      updateSummary();
+      setInterval(refreshDashboard, 5000);
+      setInterval(fetchPrice, 3000);
+
+      document.getElementById('order-form').addEventListener('submit', submitOrder);
+      ['symbol', 'quantity', 'price', 'stop-price'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateSummary);
+      });
+    });
+
+    /* ── Health check ───────────────────────────────────────────────────────── */
+    async function checkHealth() {
+      const badge = document.getElementById('status-badge');
+      const text = document.getElementById('status-text');
+      const dashboardHealth = document.getElementById('dashboard-health-value');
+      try {
+        const res = await fetch(`${API}/api/health`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          badge.className = 'ok';
+          text.textContent = `Connected · ${data.key_preview}`;
+          if (dashboardHealth) dashboardHealth.textContent = 'Connected';
+        } else {
+          badge.className = 'miss';
+          text.textContent = 'No credentials';
+          if (dashboardHealth) dashboardHealth.textContent = 'No credentials';
+        }
+      } catch (e) {
+        badge.className = 'err';
+        text.textContent = 'Server offline';
+        if (dashboardHealth) dashboardHealth.textContent = 'Offline';
+      }
+    }
+
+    /* ── Side selector ──────────────────────────────────────────────────────── */
+    function setSide(side) {
+      currentSide = side;
+      document.getElementById('side').value = side;
+      document.getElementById('btn-buy').className = 'side-btn buy' + (side === 'BUY' ? ' active' : '');
+      document.getElementById('btn-sell').className = 'side-btn sell' + (side === 'SELL' ? ' active' : '');
+      const btn = document.getElementById('submit-btn');
+      btn.className = side === 'SELL' ? 'sell' : '';
+      btn.textContent = `Place ${side} Order`;
+      updateSummary();
+    }
+
+    /* ── Type selector ──────────────────────────────────────────────────────── */
+    function setType(type) {
+      currentType = type;
+      document.getElementById('order-type').value = type;
+      ['MARKET', 'LIMIT', 'STOP_MARKET'].forEach(t => {
+        document.getElementById(`tab-${t}`).className = 'type-tab' + (t === type ? ' active' : '');
+      });
+      document.getElementById('field-price').className = 'form-group conditional-field' + (type === 'LIMIT' ? ' visible' : '');
+      document.getElementById('field-stop-price').className = 'form-group conditional-field' + (type === 'STOP_MARKET' ? ' visible' : '');
+      updateSummary();
+    }
+
+    /* ── Balance fetch ─────────────────────────────────────────────────────── */
+    async function fetchBalance() {
+      const el = document.getElementById('balance-value');
+      const dashboardEl = document.getElementById('dashboard-balance-value');
+      try {
+        const res = await fetch(`${API}/api/balance?mock=1`);
+        const data = await res.json();
+        if (data && data.success && typeof data.available !== 'undefined') {
+          const value = parseFloat(data.available).toFixed(2);
+          el.textContent = value;
+          if (dashboardEl) dashboardEl.textContent = `${value} USDT`;
+          return value;
+        }
+        el.textContent = '—';
+        if (dashboardEl) dashboardEl.textContent = '— USDT';
+      } catch (e) {
+        el.textContent = '—';
+        if (dashboardEl) dashboardEl.textContent = '— USDT';
+      }
+      return null;
+    }
+
+    async function fetchPrice() {
+      const symbol = document.getElementById('symbol').value.trim().toUpperCase() || 'BTCUSDT';
+      const priceEl = document.getElementById('current-price');
+      const dashboardEl = document.getElementById('dashboard-price-value');
+      try {
+        const res = await fetch(`${API}/api/price?symbol=${encodeURIComponent(symbol)}&mock=1`);
+        const data = await res.json();
+        if (data && data.success && data.price) {
+          const formatted = `$${parseFloat(data.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}`;
+          if (priceEl) {
+            priceEl.textContent = formatted;
+          }
+          if (dashboardEl) {
+            dashboardEl.textContent = formatted;
+          }
+          addPriceTick(data.price);
+          return data.price;
+        }
+      } catch (e) {
+        // ignore live price failures in the UI
+      }
+      if (dashboardEl) {
+        dashboardEl.textContent = '—';
+      }
+      return null;
+    }
+
+    function updateDashboardLastOrder() {
+      const el = document.getElementById('dashboard-last-order-value');
+      if (!el) return;
+      if (orderHistory.length === 0) {
+        el.textContent = 'No orders yet';
+        return;
+      }
+      const last = orderHistory[0];
+      if (last.data.success && last.data.order) {
+        const o = last.data.order;
+        el.textContent = `${o.side} ${o.symbol} ${parseFloat(o.executedQty).toFixed(4)} @ $${parseFloat(o.avgPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}`;
+      } else {
+        el.textContent = 'Last order failed';
+      }
+    }
+
+    async function refreshDashboard() {
+      await Promise.all([fetchBalance(), fetchPrice(), checkHealth()]);
+      updateDashboardLastOrder();
+    }
+
+    function addPriceTick(price) {
+      const value = parseFloat(price);
+      if (!Number.isFinite(value)) return;
+      priceHistory.push(value);
+      if (priceHistory.length > MAX_PRICE_HISTORY) {
+        priceHistory.shift();
+      }
+      renderTrendChart();
+    }
+
+    function renderTrendChart() {
+      const chart = document.getElementById('dashboard-trend-chart');
+      const summary = document.getElementById('dashboard-trend-summary');
+      if (!chart) return;
+      if (priceHistory.length === 0) {
+        chart.innerHTML = '<div class="sparkline-empty">Waiting for price data…</div>';
+        if (summary) summary.textContent = 'Live mock market movement';
+        return;
+      }
+
+      const values = priceHistory.slice();
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = max - min || 1;
+      const width = 240;
+      const height = 90;
+      const step = values.length > 1 ? width / (values.length - 1) : width;
+      let path = '';
+
+      values.forEach((value, index) => {
+        const x = index * step;
+        const y = height - ((value - min) / range) * height;
+        path += index === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+      });
+
+      const lastPrice = values[values.length - 1];
+      const firstPrice = values[0];
+      const trend = lastPrice >= firstPrice ? 'up' : 'down';
+      if (summary) {
+        summary.textContent = `${trend === 'up' ? 'Rising' : 'Falling'} ${((Math.abs(lastPrice - firstPrice) / firstPrice) * 100).toFixed(2)}%`;
+      }
+
+      chart.innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" class="sparkline-svg">
+          <path d="${path} L ${width} ${height} L 0 ${height} Z" fill="rgba(99,179,237,0.14)" />
+          <path d="${path}" fill="none" stroke="#63b3ed" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="0" cy="${height - ((values[0] - min) / range) * height}" r="3" fill="#ffffff" opacity="0.55" />
+          <circle cx="${(values.length - 1) * step}" cy="${height - ((lastPrice - min) / range) * height}" r="4" fill="#63b3ed" />
+        </svg>`;
+    }
+
+    /* ── Order summary ──────────────────────────────────────────────────────── */
+    function updateSummary() {
+      const sym = document.getElementById('symbol').value.trim().toUpperCase() || '—';
+      const qty = document.getElementById('quantity').value || '—';
+      const p = document.getElementById('price').value;
+      const sp = document.getElementById('stop-price').value;
+
+      let html = `<strong>${currentSide}</strong> ${qty} × <strong>${sym}</strong> · <strong>${currentType}</strong>`;
+      if (currentType === 'LIMIT' && p) html += ` @ $${p}`;
+      if (currentType === 'STOP_MARKET' && sp) html += ` · Stop $${sp}`;
+
+      const el = document.getElementById('order-summary');
+      el.innerHTML = html;
+      el.style.display = 'block';
+    }
+
+    /* ── Submit ─────────────────────────────────────────────────────────────── */
+    async function submitOrder(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span>Placing order…`;
+
+      const body = {
+        symbol: document.getElementById('symbol').value.trim().toUpperCase(),
+        side: currentSide,
+        type: currentType,
+        quantity: parseFloat(document.getElementById('quantity').value),
+      };
+
+      const priceVal = document.getElementById('price').value;
+      const stopPriceVal = document.getElementById('stop-price').value;
+      if (currentType === 'LIMIT' && priceVal) body.price = parseFloat(priceVal);
+      if (currentType === 'STOP_MARKET' && stopPriceVal) body.stopPrice = parseFloat(stopPriceVal);
+
+      try {
+        const res = await fetch(`${API}/api/order?mock=1`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        renderResponse(data, body);
+        addToHistory(data, body);
+        await fetchBalance();
+        await fetchPrice();
+        await fetchLogs();
+        updateDashboardLastOrder();
+      } catch (err) {
+        renderResponse({ success: false, error: `Network error: ${err.message}` }, body);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = `Place ${currentSide} Order`;
+      }
+    }
+
+    /* ── Render response ────────────────────────────────────────────────────── */
+    function renderResponse(data, req) {
+      const body = document.getElementById('response-body');
+
+      if (data.success && data.order) {
+        const o = data.order;
+        const isGreen = o.status === 'FILLED' || o.status === 'NEW';
+        body.innerHTML = `
+      <div class="result-grid">
+        <div class="result-cell wide">
+          <div class="result-label">Order ID</div>
+          <div class="result-value blue">${o.orderId ?? '—'}</div>
+        </div>
+        <div class="result-cell">
+          <div class="result-label">Status</div>
+          <div class="result-value ${o.status === 'FILLED' ? 'green' : 'blue'}">${o.status ?? '—'}</div>
+        </div>
+        <div class="result-cell">
+          <div class="result-label">Symbol</div>
+          <div class="result-value">${o.symbol ?? '—'}</div>
+        </div>
+        <div class="result-cell">
+          <div class="result-label">Side</div>
+          <div class="result-value ${o.side === 'BUY' ? 'green' : 'red'}">${o.side ?? '—'}</div>
+        </div>
+        <div class="result-cell">
+          <div class="result-label">Type</div>
+          <div class="result-value">${o.type ?? '—'}</div>
+        </div>
+        <div class="result-cell">
+          <div class="result-label">Orig Qty</div>
+          <div class="result-value">${o.origQty ?? '—'}</div>
+        </div>
+        <div class="result-cell">
+          <div class="result-label">Executed Qty</div>
+          <div class="result-value">${o.executedQty ?? '—'}</div>
+        </div>
+        <div class="result-cell">
+          <div class="result-label">Avg Price</div>
+          <div class="result-value">${formatPrice(o.avgPrice)}</div>
+        </div>
+        ${o.price && o.price !== '0' ? `
+        <div class="result-cell">
+          <div class="result-label">Limit Price</div>
+          <div class="result-value">${formatPrice(o.price)}</div>
+        </div>` : ''}
+        ${o.stopPrice && o.stopPrice !== '0' ? `
+        <div class="result-cell">
+          <div class="result-label">Stop Price</div>
+          <div class="result-value">${formatPrice(o.stopPrice)}</div>
+        </div>` : ''}
+      </div>
+      <div class="status-banner success">
+        ✅ Order placed successfully
+      </div>`;
+      } else {
+        const code = data.error_code ? ` [${data.error_code}]` : '';
+        body.innerHTML = `
+      <div class="status-banner error">
+        ❌ Order failed${code}
+      </div>
+      <div class="error-detail">${escHtml(data.error ?? 'Unknown error')}</div>`;
+      }
+    }
+
+    function formatPrice(v) {
+      if (!v || v === '0') return '—';
+      const n = parseFloat(v);
+      return isNaN(n) ? v : `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}`;
+    }
+
+    /* ── History ─────────────────────────────────────────────────────────────── */
+    function addToHistory(data, req) {
+      orderHistory.unshift({ data, req, ts: new Date() });
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const body = document.getElementById('history-body');
+      const countEl = document.getElementById('history-count');
+
+      if (orderHistory.length === 0) {
+        body.innerHTML = `<div class="empty-state" style="padding:2rem;"><div class="empty-icon">📭</div><p>No orders yet.</p></div>`;
+        countEl.textContent = '';
+        return;
+      }
+
+      countEl.textContent = `${orderHistory.length} order${orderHistory.length > 1 ? 's' : ''}`;
+      body.innerHTML = `<div class="history-list">${orderHistory.map((h, i) => {
+        const ok = h.data.success;
+        const side = h.req.side;
+        const sym = h.req.symbol;
+        const type = h.req.type;
+        const qty = h.req.quantity;
+        const id = h.data.order?.orderId ?? '—';
+        const time = h.ts.toLocaleTimeString();
+        return `<div class="history-item" onclick="replayHistory(${i})">
+      <div class="history-badge ${side}">${side}</div>
+      <div class="history-info">
+        <div class="history-symbol">${sym} · ${type}</div>
+        <div class="history-meta">qty ${qty} · ID ${id}</div>
+      </div>
+      <div class="history-badge ${ok ? 'ok' : 'fail'}">${ok ? '✓' : '✗'}</div>
+      <div class="history-time">${time}</div>
+    </div>`;
+      }).join('')}</div>`;
+    }
+
+    function replayHistory(i) {
+      const h = orderHistory[i];
+      renderResponse(h.data, h.req);
+    }
+
+    /* ── Logs ────────────────────────────────────────────────────────────────── */
+    async function fetchLogs() {
+      const n = parseInt(document.getElementById('logs-count').value) || 40;
+      const out = document.getElementById('log-output');
+      try {
+        const res = await fetch(`${API}/api/logs?n=${n}`);
+        const data = await res.json();
+        if (!data.lines || data.lines.length === 0) {
+          out.innerHTML = `<span class="log-line EMPTY">No log entries yet. Place an order to see logs.</span>`;
+          return;
+        }
+        out.innerHTML = data.lines.map(line => {
+          let cls = 'log-line';
+          if (line.includes('| DEBUG')) cls += ' DEBUG';
+          else if (line.includes('| INFO')) cls += ' INFO';
+          else if (line.includes('| WARNING')) cls += ' WARNING';
+          else if (line.includes('| ERROR')) cls += ' ERROR';
+          return `<span class="${cls}">${escHtml(line)}</span>`;
+        }).join('\n');
+        out.scrollTop = out.scrollHeight;
+      } catch (e) {
+        out.innerHTML = `<span class="log-line ERROR">Failed to load logs: ${escHtml(e.message)}</span>`;
+      }
+    }
+
+    let autoOn = false;
+    function toggleAutoRefresh() {
+      autoOn = !autoOn;
+      document.getElementById('auto-refresh-switch').className = `toggle-switch${autoOn ? ' on' : ''}`;
+      document.getElementById('auto-refresh-label').textContent = autoOn ? 'Auto (5s)' : 'Auto';
+      if (autoOn) {
+        autoRefreshTimer = setInterval(fetchLogs, 5000);
+      } else {
+        clearInterval(autoRefreshTimer);
+      }
+    }
+
+    /* ── Utils ───────────────────────────────────────────────────────────────── */
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+
+</html>
